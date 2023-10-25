@@ -1,0 +1,1 @@
+# A-Hybrid-Niching-Memetic-Algorithm-for-Multimodal-Optimization-of-Double-Row-Layout-Problem
