@@ -1,4 +1,4 @@
-#include "Fast_DPSO.h"
+#include "FNMA.h"
 
 struct objIdx {
 	double obj;
@@ -20,14 +20,14 @@ unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 default_random_engine gen(seed);
 normal_distribution<double> dis(0, 1);
 
-// ×Ô¶¨Òå¸öÌå±È½Ïº¯Êı
+// è‡ªå®šä¹‰ä¸ªä½“æ¯”è¾ƒå‡½æ•°
 bool compare_ind(IndividualClass& a, IndividualClass& b) {
 	//return a.obj_offset < b.obj_offset;
 	return a.obj_final < b.obj_final;
 }
 
 
-// ÅĞ¶ÏÁ½¸ö±àÂë´®ÊÇ·ñÏàÍ¬
+// åˆ¤æ–­ä¸¤ä¸ªç¼–ç ä¸²æ˜¯å¦ç›¸åŒ
 //bool isSame(vector<int> a, vector<int> b, int num) {
 //	for (int i = 0; i < num; i++) {
 //		if (a[i] != b[i])
@@ -43,15 +43,15 @@ bool compare_objIdx(objIdx& a, objIdx& b) {
 
 
 /**
- * ³õÊ¼»¯ÖÖÈººÍpBestÖµ.
+ * åˆå§‹åŒ–ç§ç¾¤å’ŒpBestå€¼.
  * 
  * \param problem
  */
 void Fast_DPSOClass::initialize(ProblemClass problem) {
 	/* initialize parameters */
-	num_eval = 0; // Ä¿±êÆÀ¼Û´ÎÊı³õÊ¼»¯
+	num_eval = 0; // ç›®æ ‡è¯„ä»·æ¬¡æ•°åˆå§‹åŒ–
 
-	// ³õÊ¼»¯ÖÖÈººÍpBest£¬ÆäÖĞgBestÔÚÖÖÈº»®·ÖÖĞ¸üĞÂ
+	// åˆå§‹åŒ–ç§ç¾¤å’ŒpBestï¼Œå…¶ä¸­gBeståœ¨ç§ç¾¤åˆ’åˆ†ä¸­æ›´æ–°
 	for (int i = 0; i < popNum; i++)
 	{
 		IndividualClass idc = IndividualClass();
@@ -60,9 +60,9 @@ void Fast_DPSOClass::initialize(ProblemClass problem) {
 		pops.push_back(idc);
 		pBest.push_back(idc);
 	}
-	gBest.resize(popNum); //gBest´óĞ¡³õÊ¼»¯
+	gBest.resize(popNum); //gBestå¤§å°åˆå§‹åŒ–
 
-	// ³õÊ¼»¯¾Ö²¿ËÑË÷ĞèÒªÓÃµ½µÄÊı¾İ
+	// åˆå§‹åŒ–å±€éƒ¨æœç´¢éœ€è¦ç”¨åˆ°çš„æ•°æ®
 	int ls_num = 0;
 	for (int i = 0; i < problem.facility_num; i++) {
 		for (int j = i + 1; j < problem.facility_num + 1; j++) {
@@ -75,37 +75,37 @@ void Fast_DPSOClass::initialize(ProblemClass problem) {
 }
 
 
-// Éú³ÉÁÚ¾Ó
+// ç”Ÿæˆé‚»å±…
 void Fast_DPSOClass::define_neighbors(ProblemClass problem) {
 
-	// ¹¹Ôì¹şÏ£º¯Êı
+	// æ„é€ å“ˆå¸Œå‡½æ•°
 	for (int i = 0; i < num_projs; i++) {
 
-		// ¹¹ÔìÁ½¸ö¸ßË¹·Ö²¼ÏòÁ¿
+		// æ„é€ ä¸¤ä¸ªé«˜æ–¯åˆ†å¸ƒå‘é‡
 		for (int j = 0; j < problem.facility_num + 1; j++) {
 			proj[i].a1[j] = dis(gen);
 			proj[i].a2[j] = dis(gen);
 		}
 
-		// ³õÊ¼»¯Ë÷Òı(×¢Òâ£¬ÏÂÃæÕâÈıĞĞºÃÏñÃ»ÓĞÒâÒå£¬ÊôÓÚ¶àÓàµÄĞĞ)
+		// åˆå§‹åŒ–ç´¢å¼•(æ³¨æ„ï¼Œä¸‹é¢è¿™ä¸‰è¡Œå¥½åƒæ²¡æœ‰æ„ä¹‰ï¼Œå±äºå¤šä½™çš„è¡Œ)
 		map<int, vector<int> >::iterator iter;
 		for (iter = proj[i].bucket.begin(); iter != proj[i].bucket.end(); iter++)
 			iter->second.clear();
 
-		// ³õÊ¼»¯Ë÷Òı
+		// åˆå§‹åŒ–ç´¢å¼•
 		proj[i].bucket.clear();
 
-		// XVµÄÉÏÏÂ½ç
+		// XVçš„ä¸Šä¸‹ç•Œ
 		double min1, min2, max1, max2;
 		min1 = min2 = 1e300;
 		max1 = max2 = -1e300;
 
-		// ¼ÆËãV*X£¬ ÆäÖĞXÊÇ½øĞĞÁË¹éÒ»»¯£¬¼´½«µ±Ç°Öµ¼õÈ¥ÁË(Xmax-Xmin)/2
+		// è®¡ç®—V*Xï¼Œ å…¶ä¸­Xæ˜¯è¿›è¡Œäº†å½’ä¸€åŒ–ï¼Œå³å°†å½“å‰å€¼å‡å»äº†(Xmax-Xmin)/2
 		for (int j = 0; j < popNum; j++) {
 			proj[i].p1[j] = 0;
 			proj[i].p2[j] = 0;
 			for (int k = 0; k < problem.facility_num + 1; k++) {
-				proj[i].p1[j] += proj[i].a1[k] * (pBest[j].sequence[k] - (problem.facility_num + 1) / 2.0); // ×¢ÒâÕâÀïÊ¹ÓÃµÄÊÇPbest£¬²»ÊÇµ±Ç°Àı×Ó
+				proj[i].p1[j] += proj[i].a1[k] * (pBest[j].sequence[k] - (problem.facility_num + 1) / 2.0); // æ³¨æ„è¿™é‡Œä½¿ç”¨çš„æ˜¯Pbestï¼Œä¸æ˜¯å½“å‰ä¾‹å­
 				proj[i].p2[j] += proj[i].a2[k] * (pBest[j].sequence[k] - (problem.facility_num + 1) / 2.0);
 			}
 			if (proj[i].p1[j] > max1) max1 = proj[i].p1[j];
@@ -115,13 +115,13 @@ void Fast_DPSOClass::define_neighbors(ProblemClass problem) {
 			if (proj[i].p2[j] < min2) min2 = proj[i].p2[j];
 		}
 
-		double d = 20;  // number of buckets£¬ nb
+		double d = 20;  // number of bucketsï¼Œ nb
 		proj[i].r1 = (max1 - min1) / (d);
 		proj[i].r2 = (max2 - min2) / (d);
 		proj[i].b1 = myRand() * proj[i].r1;
 		proj[i].b2 = myRand() * proj[i].r2;
 
-		// ¹«Ê½7£¬ZµÄÖµ¶¨ÒåÎª50
+		// å…¬å¼7ï¼ŒZçš„å€¼å®šä¹‰ä¸º50
 		for (int j = 0; j < popNum; j++) {
 			double id = ceil((proj[i].p1[j] + proj[i].b1) / proj[i].r1) * 50 + ceil((proj[i].p2[j] + proj[i].b2) / proj[i].r2);
 			proj[i].hashid[j] = id;
@@ -130,7 +130,7 @@ void Fast_DPSOClass::define_neighbors(ProblemClass problem) {
 	}
 
 
-	// Ğ¡Éú¾³Éú³É
+	// å°ç”Ÿå¢ƒç”Ÿæˆ
 	for (int i = 0; i < popNum; i++) {
 		for (int j = 0; j < nsize; j++) {
 			int np = rand() % num_projs;
@@ -142,10 +142,10 @@ void Fast_DPSOClass::define_neighbors(ProblemClass problem) {
 }
 
 
-// ¸üĞÂgBest
+// æ›´æ–°gBest
 void Fast_DPSOClass::update_gBest() {
 	for (int i = 0; i < popNum; i++) {
-		//gBest[i] = pBest[i]; // Éè±¸iµÄÁÚ¾ÓÓ¦¸ÃÒ²°üº¬×Ô¼º
+		//gBest[i] = pBest[i]; // è®¾å¤‡içš„é‚»å±…åº”è¯¥ä¹ŸåŒ…å«è‡ªå·±
 		for (int j = 0; j < nsize; j++) {
 			int neId = neighbor[i][j];
 			if (j == 0) {
@@ -160,10 +160,10 @@ void Fast_DPSOClass::update_gBest() {
 }
 
 
-//PMX½»²æ²Ù×÷ ²¿·ÖÆ¥Åä½»²æ
+//PMXäº¤å‰æ“ä½œ éƒ¨åˆ†åŒ¹é…äº¤å‰
 void Fast_DPSOClass::crossover_PMX(vector<int>& code_s1, vector<int> code_s2, int num) {
 	
-	//Ëæ»úÉú³ÉÁ½¸ö½»²æµã£¬±£Ö¤lwĞ¡ÓÚhg
+	//éšæœºç”Ÿæˆä¸¤ä¸ªäº¤å‰ç‚¹ï¼Œä¿è¯lwå°äºhg
 	int lw = rand() % num;
 	int hg = rand() % num;
 
@@ -172,18 +172,18 @@ void Fast_DPSOClass::crossover_PMX(vector<int>& code_s1, vector<int> code_s2, in
 		hg = lw ^ hg;
 		lw = lw ^ hg;
 	}
-	hg++; // °üº¬hg[lw, hg]
+	hg++; // åŒ…å«hg[lw, hg]
 
 	map<int, int> map2T1;
 
-	//Ìæ»»²Ù×÷	
+	//æ›¿æ¢æ“ä½œ	
 	for (int i = lw; i < hg; i++) {		
 		map2T1.insert(pair<int, int>(code_s2[i], code_s1[i]));
 		code_s1[i] = code_s2[i];		
 	}
 
 	map<int, int>::iterator it;
-	//ÕûÀíÌæ»»½â
+	//æ•´ç†æ›¿æ¢è§£
 	for (int i = 0; i < lw; i++) {
 		int tn = code_s1[i];
 		it = map2T1.find(tn);
@@ -295,7 +295,7 @@ IndividualClass Fast_DPSOClass::Two_top_search(IndividualClass x, ProblemClass p
 
 
 IndividualClass Fast_DPSOClass::Shake(ProblemClass problem, IndividualClass x, int k) {
-	if (k == 0) { // »¥»»Á½¸öÉè±¸
+	if (k == 0) { // äº’æ¢ä¸¤ä¸ªè®¾å¤‡
 		int a = rand() % (problem.facility_num + 1);
 		int b = rand() % (problem.facility_num + 1);
 
@@ -311,7 +311,7 @@ IndividualClass Fast_DPSOClass::Shake(ProblemClass problem, IndividualClass x, i
 
 		return x;
 	}
-	else if (k == 1) { // Ñ¡ÔñÒ»¸öÉè±¸·Åµ½Ò»¸ö¿ÉĞĞÎ»ÖÃ
+	else if (k == 1) { // é€‰æ‹©ä¸€ä¸ªè®¾å¤‡æ”¾åˆ°ä¸€ä¸ªå¯è¡Œä½ç½®
 		int a = rand() % (problem.facility_num + 1);
 		int b = rand() % (problem.facility_num + 1);
 
@@ -327,7 +327,7 @@ IndividualClass Fast_DPSOClass::Shake(ProblemClass problem, IndividualClass x, i
 
 		return x;
 	}
-	else if (k == 2) { // »¥»»Èı¸öÉè±¸
+	else if (k == 2) { // äº’æ¢ä¸‰ä¸ªè®¾å¤‡
 		int a = rand() % (problem.facility_num + 1);
 		int b = rand() % (problem.facility_num + 1);
 		int c = rand() % (problem.facility_num + 1);
@@ -348,7 +348,7 @@ IndividualClass Fast_DPSOClass::Shake(ProblemClass problem, IndividualClass x, i
 
 		return x;
 	}
-	else if (k == 3) { // Ëæ»úÑ¡ÔñÒ»¸ö×ÓĞòÁĞµßµ¹Î»ÖÃ
+	else if (k == 3) { // éšæœºé€‰æ‹©ä¸€ä¸ªå­åºåˆ—é¢ å€’ä½ç½®
 
 		int n = x.sequence.size();
 
@@ -420,16 +420,16 @@ void Fast_DPSOClass::local_search(ProblemClass problem) {
 	}
 	sort(tempObj.begin(), tempObj.end(), compare_objIdx);
 
-	//ÏÈµ÷Õûpbest£¬È¥µôÖØ¸´½â
-	double tempF = tempObj[0].obj; //µ±Ç°×îĞ¡Öµ
+	//å…ˆè°ƒæ•´pbestï¼Œå»æ‰é‡å¤è§£
+	double tempF = tempObj[0].obj; //å½“å‰æœ€å°å€¼
 	//int tempId = tempObj[0].id;
-	int index = 0; // µ±Ç°×îĞ¡ÖµµÄ¿ªÊ¼Ë÷Òı
+	int index = 0; // å½“å‰æœ€å°å€¼çš„å¼€å§‹ç´¢å¼•
 	for (int i = 1; i < popNum; i++) {
 
-		if (fabs(tempF - pBest[tempObj[i].id].obj_offset) < 1.0e-5) { //²¼¾Ö³É±¾µÈÓÚµ±Ç°×îĞ¡Öµ
+		if (fabs(tempF - pBest[tempObj[i].id].obj_offset) < 1.0e-5) { //å¸ƒå±€æˆæœ¬ç­‰äºå½“å‰æœ€å°å€¼
 			int flg = 0;
 			for (int j = index; j < i; j++) {
-				if (isSameLayout(pBest[j].layout, pBest[tempObj[i].id].layout) == 1) { // ÅĞ¶Ï²¼¾Ö½á¹¹ÊÇ·ñÏàÍ¬
+				if (isSameLayout(pBest[j].layout, pBest[tempObj[i].id].layout) == 1) { // åˆ¤æ–­å¸ƒå±€ç»“æ„æ˜¯å¦ç›¸åŒ
 					flg = 1;
 					break;
 				}
@@ -443,7 +443,7 @@ void Fast_DPSOClass::local_search(ProblemClass problem) {
 				pBest[tempObj[i].id] = idc;
 			}
 		}
-		else { // ¸ü»»×îĞ¡ÖµºÍ×îĞ¡ÖµË÷Òı
+		else { // æ›´æ¢æœ€å°å€¼å’Œæœ€å°å€¼ç´¢å¼•
 			tempF = tempObj[i].obj;
 			//tempId = tempObj[i].id;
 			index = i;
@@ -465,11 +465,11 @@ void Fast_DPSOClass::local_search(ProblemClass problem) {
 		if (tabu_index[tempObj[i].id] == 1)
 			continue;
 
-		// ĞŞ¸Ä½û¼É±í
+		// ä¿®æ”¹ç¦å¿Œè¡¨
 		tabu_list.push(tempObj[i].id);
 		tabu_index[tempObj[i].id] = 1;
 
-		if (tabu_list.size() > TBSIZE) // ½û¼É±íµÄ³¤¶È³¬¹ıãĞÖµ£¬É¾³ıÕ»¶¥ÔªËØ£¬ĞŞ¸Ätabu_index
+		if (tabu_list.size() > TBSIZE) // ç¦å¿Œè¡¨çš„é•¿åº¦è¶…è¿‡é˜ˆå€¼ï¼Œåˆ é™¤æ ˆé¡¶å…ƒç´ ï¼Œä¿®æ”¹tabu_index
 		{
 			int tempIdx = tabu_list.front();
 			tabu_index[tempIdx] = 0;
@@ -485,15 +485,15 @@ void Fast_DPSOClass::local_search(ProblemClass problem) {
 
 vector<IndividualClass> Fast_DPSOClass::main_run(ProblemClass problem, int ns) {
 
-	// ³õÊ¼»¯
+	// åˆå§‹åŒ–
 	initialize(problem);
 	
-	// µü´úÓÅ»¯
+	// è¿­ä»£ä¼˜åŒ–
 	for (int iter = 0; iter < maxTime; iter++) {
 
 		//cout << iter << " " << num_eval << endl;
 
-		// ¸üĞÂnsize
+		// æ›´æ–°nsize
 		if (iter <= 0.25 * maxTime)
 			nsize = 2;
 		else if (iter <= 0.5 * maxTime)
@@ -509,42 +509,42 @@ vector<IndividualClass> Fast_DPSOClass::main_run(ProblemClass problem, int ns) {
 		if (iter % (num_projs) == 0)
 			define_neighbors(problem);
 
-		update_gBest(); // ¸üĞÂÁ£×ÓµÄgBest
+		update_gBest(); // æ›´æ–°ç²’å­çš„gBest
 
-		// Á£×Ó¸üĞÂ
+		// ç²’å­æ›´æ–°
 		for (int i = 0; i < popNum; i++) {
-			//µ±Ç°Á£×Ó½øĞĞÍ»±ä
+			//å½“å‰ç²’å­è¿›è¡Œçªå˜
 			if (myRand() < WR) {
-				// Ëæ»úÑ¡ÔñÒ»¸öÉè±¸Î»ÖÃ£¬2-facility_num
+				// éšæœºé€‰æ‹©ä¸€ä¸ªè®¾å¤‡ä½ç½®ï¼Œ2-facility_num
 				int a = rand() % (problem.facility_num + 1);
 				int b = rand() % (problem.facility_num + 1);
 				while (a == b) {
 					b = rand() % (problem.facility_num + 1);
 				}
 
-				// »¥»»a£¬bÎ»ÖÃÉÏµÄÉè±¸
+				// äº’æ¢aï¼Œbä½ç½®ä¸Šçš„è®¾å¤‡
 				pops[i].sequence[a] = pops[i].sequence[a] ^ pops[i].sequence[b];
 				pops[i].sequence[b] = pops[i].sequence[a] ^ pops[i].sequence[b];
 				pops[i].sequence[a] = pops[i].sequence[a] ^ pops[i].sequence[b];
 			}
 
-			//±äÒìÁ£×ÓÓëpBest½»²æ
+			//å˜å¼‚ç²’å­ä¸pBestäº¤å‰
 			if (myRand() < CR1) {
 				crossover_PMX(pops[i].sequence, pBest[i].sequence, problem.facility_num + 1);
 			}
 
-			//½»²æºóÁ£×ÓÓëgBest½»²æ
+			//äº¤å‰åç²’å­ä¸gBestäº¤å‰
 			if (myRand() < CR2) {
 				crossover_PMX(pops[i].sequence, gBest[i].sequence, problem.facility_num + 1);
 			}
 
-			// ¼ÆËãÄ¿±êº¯ÊıÖµ
+			// è®¡ç®—ç›®æ ‡å‡½æ•°å€¼
 			pops[i].getObj_offset(num_eval, problem, 0);
 
-			// ¸üĞÂÁ£×ÓµÄÀúÊ·×îÓÅ½â
+			// æ›´æ–°ç²’å­çš„å†å²æœ€ä¼˜è§£
 			if (pops[i].obj_offset < pBest[i].obj_offset) {
 				pBest[i] = pops[i];
-				tabu_index[i] = 0; // ÒÆ³ı½û¼É±í
+				tabu_index[i] = 0; // ç§»é™¤ç¦å¿Œè¡¨
 			}
 		}
 		local_search(problem);
@@ -553,8 +553,8 @@ vector<IndividualClass> Fast_DPSOClass::main_run(ProblemClass problem, int ns) {
 	for (int i = 0; i < pBest.size(); i++)
 		pBest[i].getObj_final(problem, 0);
 
-	//// Í³¼ÆËùÓĞ×îÓÅ½â
-	//cout << "Ä¿±êÆÀ¼Û´ÎÊı£º" << num_eval << endl;
+	//// ç»Ÿè®¡æ‰€æœ‰æœ€ä¼˜è§£
+	//cout << "ç›®æ ‡è¯„ä»·æ¬¡æ•°ï¼š" << num_eval << endl;
 	get_num_sol(problem);
 
 	return allBest;
@@ -562,13 +562,13 @@ vector<IndividualClass> Fast_DPSOClass::main_run(ProblemClass problem, int ns) {
 
 
 /**
- * ½á¹ûÍ³¼Æ£¬°üÀ¨×îÓÅ½â£¨º¬Í³¼Æ£©£¬ËùÓĞ½â£¨º¬Í³¼Æ£©.
+ * ç»“æœç»Ÿè®¡ï¼ŒåŒ…æ‹¬æœ€ä¼˜è§£ï¼ˆå«ç»Ÿè®¡ï¼‰ï¼Œæ‰€æœ‰è§£ï¼ˆå«ç»Ÿè®¡ï¼‰.
  * 
  */
 void Fast_DPSOClass::resultCollation() {
 
-	vector<IndividualClass> bs; // ×îÓÅ½â
-	vector<IndividualClass> as; // ËùÓĞ½â
+	vector<IndividualClass> bs; // æœ€ä¼˜è§£
+	vector<IndividualClass> as; // æ‰€æœ‰è§£
 
 
 	sort(pBest.begin(), pBest.end(), compare_ind);
@@ -578,7 +578,7 @@ void Fast_DPSOClass::resultCollation() {
 	as.push_back(pBest[0]);
 
 	for (int i = 1; i < pBest.size(); i++) {
-		if (fabs(pBest[i].obj_final - minF) < 1.0e-5) { // Óë×îÓÅ½âµÄÄ¿±êº¯ÊıÖµÏàÍ¬
+		if (fabs(pBest[i].obj_final - minF) < 1.0e-5) { // ä¸æœ€ä¼˜è§£çš„ç›®æ ‡å‡½æ•°å€¼ç›¸åŒ
 			int flg = 1;
 			for (int j = 0; j < bs.size(); j++) {
 				if (isSameLayout(bs[j].layout, pBest[i].layout)) {
@@ -612,26 +612,26 @@ void Fast_DPSOClass::resultCollation() {
 
 
 /**
- * ÅĞ¶ÏÁ½¸ö½â£¨²¼¾Ö£©ÊÇ·ñÏàÍ¬£¬Ö÷Òª¿¼ÂÇÁ½ĞĞµÄÉè±¸ÅÅÁĞ.
+ * åˆ¤æ–­ä¸¤ä¸ªè§£ï¼ˆå¸ƒå±€ï¼‰æ˜¯å¦ç›¸åŒï¼Œä¸»è¦è€ƒè™‘ä¸¤è¡Œçš„è®¾å¤‡æ’åˆ—.
  *
- * \param layout1 ²¼¾Ö1
- * \param layout2 ²¼¾Ö2
+ * \param layout1 å¸ƒå±€1
+ * \param layout2 å¸ƒå±€2
  * \return
  */
 bool Fast_DPSOClass::isSameLayout(vector<vector<int>> layout1, vector<vector<int>> layout2) {
 
-	//ÅĞ¶ÏÍêÈ«Ò»ÖÂ
+	//åˆ¤æ–­å®Œå…¨ä¸€è‡´
 	//  1 2 3 4    1 2 3 4
 	//  5 6 7 8    5 6 7 8
 	if (layout1[0].size() == layout2[0].size()) {
 
 		int tf = 1;
-		for (int i = 0; i < layout1[0].size(); i++) // µÚÒ»ĞĞ¶Ô±È
+		for (int i = 0; i < layout1[0].size(); i++) // ç¬¬ä¸€è¡Œå¯¹æ¯”
 			if (layout1[0][i] != layout2[0][i]) {
 				tf = 0;
 				break;
 			}
-		if (tf) // µÚ¶şĞĞ¶Ô±È
+		if (tf) // ç¬¬äºŒè¡Œå¯¹æ¯”
 			for (int i = 0; i < layout1[1].size(); i++)
 				if (layout1[1][i] != layout2[1][i]) {
 					tf = 0;
@@ -641,18 +641,18 @@ bool Fast_DPSOClass::isSameLayout(vector<vector<int>> layout1, vector<vector<int
 			return true;
 	}
 
-	//ÅĞ¶Ï¶Ô³Æ»¥»»
+	//åˆ¤æ–­å¯¹ç§°äº’æ¢
 	//  1 2 3 4    4 3 2 1
 	//  5 6 7 8    8 7 6 5
 	if (layout1[0].size() == layout2[0].size()) {
 
 		int tf = 1;
-		for (int i = 0; i < layout1[0].size(); i++) // µÚÒ»ĞĞ¶Ô±È
+		for (int i = 0; i < layout1[0].size(); i++) // ç¬¬ä¸€è¡Œå¯¹æ¯”
 			if (layout1[0][i] != layout2[0][layout2[0].size() - 1 - i]) {
 				tf = 0;
 				break;
 			}
-		if (tf) // µÚ¶şĞĞ¶Ô±È
+		if (tf) // ç¬¬äºŒè¡Œå¯¹æ¯”
 			for (int i = 0; i < layout1[1].size(); i++)
 				if (layout1[1][i] != layout2[1][layout2[1].size() - 1 - i]) {
 					tf = 0;
@@ -662,18 +662,18 @@ bool Fast_DPSOClass::isSameLayout(vector<vector<int>> layout1, vector<vector<int
 			return true;
 	}
 
-	//ÅĞ¶ÏÁ½ĞĞ»¥»»
+	//åˆ¤æ–­ä¸¤è¡Œäº’æ¢
 	//  1 2 3 4    5 6 7 8
 	//  5 6 7 8    1 2 3 4
 	if (layout1[0].size() == layout2[1].size()) {
 
 		int tf = 1;
-		for (int i = 0; i < layout1[0].size(); i++) // µÚÒ»ĞĞ¶Ô±È
+		for (int i = 0; i < layout1[0].size(); i++) // ç¬¬ä¸€è¡Œå¯¹æ¯”
 			if (layout1[0][i] != layout2[1][i]) {
 				tf = 0;
 				break;
 			}
-		if (tf) // µÚ¶şĞĞ¶Ô±È
+		if (tf) // ç¬¬äºŒè¡Œå¯¹æ¯”
 			for (int i = 0; i < layout1[1].size(); i++)
 				if (layout1[1][i] != layout2[0][i]) {
 					tf = 0;
@@ -683,18 +683,18 @@ bool Fast_DPSOClass::isSameLayout(vector<vector<int>> layout1, vector<vector<int
 			return true;
 	}
 
-	//ÅĞ¶Ï¶Ô³ÆÇÒÁ½ĞĞ»¥»»
+	//åˆ¤æ–­å¯¹ç§°ä¸”ä¸¤è¡Œäº’æ¢
 	//  1 2 3 4    8 7 6 5
 	//  5 6 7 8    4 3 2 1
 	if (layout1[0].size() == layout2[1].size()) {
 
 		int tf = 1;
-		for (int i = 0; i < layout1[0].size(); i++) // µÚÒ»ĞĞ¶Ô±È
+		for (int i = 0; i < layout1[0].size(); i++) // ç¬¬ä¸€è¡Œå¯¹æ¯”
 			if (layout1[0][i] != layout2[1][layout2[1].size() - 1 - i]) {
 				tf = 0;
 				break;
 			}
-		if (tf) // µÚ¶şĞĞ¶Ô±È
+		if (tf) // ç¬¬äºŒè¡Œå¯¹æ¯”
 			for (int i = 0; i < layout1[1].size(); i++)
 				if (layout1[1][i] != layout2[0][layout2[0].size() - 1 - i]) {
 					tf = 0;
